@@ -374,8 +374,16 @@ def compute_layer_norm_mean_and_variance(x):
 
     return mean, var
 
-# Step 36 - normalize_and_scale_with_gamma_beta (not yet solved)
-# TODO: implement
+# Step 36 - normalize_and_scale_with_gamma_beta
+import torch
+
+def normalize_and_scale_with_gamma_beta(x, gamma, beta, eps=1e-5):
+    # TODO: standardize x along the last axis then apply gamma and beta affine transform
+    mean, var = compute_layer_norm_mean_and_variance(x)
+    x_cap = (x-mean)/(torch.sqrt(var + torch.tensor(eps, dtype=torch.float32)))
+
+    y = x_cap * gamma + beta
+    return y
 
 # Step 37 - apply_residual_add_and_norm (not yet solved)
 # TODO: implement
