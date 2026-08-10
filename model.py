@@ -518,8 +518,51 @@ def apply_log_softmax_over_vocab(logits):
     # TODO: Convert decoder logits (B, T, V) into log probabilities over the vocabulary axis.
     return torch.log_softmax(logits, dim=-1)
 
-# Step 51 - run_transformer_forward (not yet solved)
-# TODO: implement
+# Step 51 - run_transformer_forward
+def run_transformer_forward(src_ids, tgt_ids, model_params, num_heads, pad_id):
+    # TODO: embed src+tgt, add PE, build masks, run encoder/decoder, project to log probs.
+    token_embedding = model_params['token_embedding']
+    encoder_layers = model_params['encoder_layers']
+    decoder_layers = model_params['decoder_layers']
+    output_projection = model_params['output_projection']
+
+    # Source and Target Embedding
+    src_embd = token_embedding[src_ids]
+    tgt_embd = token_embedding[tgt_ids]
+
+    # Scale Emdedding 
+    d_model = token_embedding.size(1)
+    src_embd = scale_embeddings_by_sqrt_d_model(src_embd, d_model)
+    tgt_embd = scale_embeddings_by_sqrt_d_model(tgt_embd, d_model)
+
+    # Positional Encoding 
+    src_pe = build_sinusoidal_positional_encoding(src_ids.size(1), d_model)
+    tgt_pe = build_sinusoidal_positional_encoding(tgt_ids.size(1), d_model)
+
+    src_embd = add_positional_encoding_to_embeddings(src_embd, src_pe)
+    tgt_embd = add_positional_encoding_to_embeddings(tgt_embd, tgt_pe)
+
+    # Masking 
+    src_mask = build_padding_mask(src_ids, pad_id)
+
+    tgt_padding_mask = build_padding_mask(tgt_ids, pad_id)
+    tgt_casual_mask = build_causal_mask(tgt_ids.size(1))
+    tgt_mask = combine_padding_and_causal_masks(tgt_padding_mask, tgt_casual_mask)
+
+
+    # Encoder 
+    encoder_output = stack_encoder_layers(src_embd, encoder_layers, num_heads, src_mask)
+
+    # Decoder 
+    decoder_output = stack_decoder_layers(tgt_embd, encoder_output, decoder_layers, num_heads, src_mask, tgt_mask)
+
+    # Logit 
+    logit = apply_final_output_projection(decoder_output, output_projection)
+
+    # logsoft_max 
+    out = apply_log_softmax_over_vocab(logit)
+
+    return out
 
 # Step 52 - init_encoder_layer_parameters (not yet solved)
 # TODO: implement
