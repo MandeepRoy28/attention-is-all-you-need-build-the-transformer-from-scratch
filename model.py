@@ -773,8 +773,20 @@ def average_loss_over_non_pad_tokens(total_loss, gold_token_ids, pad_id):
 
     return total_loss/non_pad_ids
 
-# Step 63 - compute_token_accuracy_ignoring_pad (not yet solved)
-# TODO: implement
+# Step 63 - compute_token_accuracy_ignoring_pad
+import torch
+
+def compute_token_accuracy_ignoring_pad(log_probabilities, gold_token_ids, pad_id):
+    predictions = log_probabilities.argmax(dim=-1)
+
+    non_pad = gold_token_ids != pad_id
+
+    if non_pad.sum() == 0:
+        return torch.tensor(0.0, dtype=torch.float32)
+
+    correct = predictions == gold_token_ids
+
+    return correct[non_pad].float().mean()
 
 # Step 64 - initialize_adam_optimizer_state (not yet solved)
 # TODO: implement
