@@ -714,8 +714,13 @@ def compute_noam_learning_rate(step, d_model, warmup_steps):
     # TODO: return the Noam warmup learning rate for the given step.
     return (1/math.sqrt(d_model))*(min((1/math.sqrt(step)), (step*(1/(warmup_steps**1.5)))))
 
-# Step 58 - build_uniform_smoothing_distribution (not yet solved)
-# TODO: implement
+# Step 58 - build_uniform_smoothing_distribution
+import torch
+
+def build_uniform_smoothing_distribution(shape, vocab_size, epsilon):
+    # TODO: return a float tensor of `shape` filled with epsilon / (vocab_size - 2).
+    distributor = torch.full(size=shape, fill_value=(epsilon/(vocab_size-2)))
+    return distributor
 
 # Step 59 - set_confidence_on_gold_tokens (not yet solved)
 # TODO: implement
