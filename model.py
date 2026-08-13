@@ -708,8 +708,11 @@ def shift_targets_right_with_start_token(target_ids, start_token_id):
     shift[:,1:] = target_ids[:,0:-1]
     return shift
 
-# Step 57 - compute_noam_learning_rate (not yet solved)
-# TODO: implement
+# Step 57 - compute_noam_learning_rate
+import math
+def compute_noam_learning_rate(step, d_model, warmup_steps):
+    # TODO: return the Noam warmup learning rate for the given step.
+    return (1/math.sqrt(d_model))*(min((1/math.sqrt(step)), (step*(1/(warmup_steps**1.5)))))
 
 # Step 58 - build_uniform_smoothing_distribution (not yet solved)
 # TODO: implement
