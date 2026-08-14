@@ -881,8 +881,69 @@ def zero_all_parameter_gradients(parameter_list):
         
         param.grad = None
 
-# Step 71 - compute_batch_training_loss (not yet solved)
-# TODO: implement
+# Step 71 - compute_batch_training_loss
+def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
+    # Read config
+    pad_id = config['pad_id']
+    start_id = config['start_id']
+    vocab_size = config['vocab_size']
+    smoothing = config['smoothing']
+    num_heads = config['num_heads']
+
+    # Make the embedding available under the name expected
+    # by run_transformer_forward() and the test.
+    if 'token_embedding' not in model_params:
+        model_params['token_embedding'] = model_params['tgt_embedding']
+
+    # 1. Teacher forcing
+    decoder_input = shift_targets_right_with_start_token(
+        tgt_batch,
+        start_id
+    )
+
+    # 2. Transformer forward pass
+    log_probabilities = run_transformer_forward(
+        src_batch,
+        decoder_input,
+        model_params,
+        num_heads,
+        pad_id
+    )
+
+    # 3. Build label-smoothed target distribution
+    smoothed = build_uniform_smoothing_distribution(
+        log_probabilities.shape,
+        vocab_size,
+        smoothing
+    )
+
+    confidence = 1.0 - smoothing
+
+    smoothed = set_confidence_on_gold_tokens(
+        smoothed,
+        tgt_batch,
+        confidence
+    )
+
+    # 4. Ignore PAD positions and PAD vocabulary column
+    smoothed = zero_pad_column_and_pad_token_rows(
+        smoothed,
+        tgt_batch,
+        pad_id
+    )
+
+    # 5. KL loss
+    total_loss = compute_label_smoothed_kl_loss(
+        log_probabilities,
+        smoothed
+    )
+
+    # 6. Average over non-PAD tokens
+    return average_loss_over_non_pad_tokens(
+        total_loss,
+        tgt_batch,
+        pad_id
+    )
 
 # Step 72 - run_training_step_with_backprop (not yet solved)
 # TODO: implement
