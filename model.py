@@ -890,14 +890,12 @@ def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
     smoothing = config['smoothing']
     num_heads = config['num_heads']
 
-    # Create the shared token embedding expected by run_transformer_forward
-    if 'token_embedding' not in model_params:
-        model_params['token_embedding'] = (
-            model_params['src_embedding'] +
-            model_params['tgt_embedding']
-        ) / 2
+    # Rebuild every forward pass so we get a fresh autograd graph
+    model_params['token_embedding'] = (
+        model_params['src_embedding'] +
+        model_params['tgt_embedding']
+    ) / 2
 
-    # Keep gradient for the computed token_embedding
     model_params['token_embedding'].retain_grad()
 
     # Teacher forcing
@@ -930,7 +928,7 @@ def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
         confidence
     )
 
-    # Ignore PAD
+    # PAD handling
     smoothed = zero_pad_column_and_pad_token_rows(
         smoothed,
         tgt_batch,
@@ -943,7 +941,6 @@ def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
         smoothed
     )
 
-    # Average over non-PAD tokens
     return average_loss_over_non_pad_tokens(
         total_loss,
         tgt_batch,
