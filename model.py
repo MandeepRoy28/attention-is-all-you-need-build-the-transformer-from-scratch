@@ -1067,6 +1067,25 @@ def mark_finished_beams(token_ids, finished_flags, end_token_id):
     # or if its latest token is EOS.
     return finished_flags | (token_ids == end_token_id)
 
-# Step 80 - select_best_finished_beam (not yet solved)
-# TODO: implement
+# Step 80 - select_best_finished_beam
+import torch
+
+def select_best_finished_beam(finished_sequences, finished_scores, alpha):
+    scores = torch.tensor(finished_scores, dtype=torch.float32)
+
+    lengths = torch.tensor(
+        [len(seq) for seq in finished_sequences],
+        dtype=torch.float32
+    )
+
+    length_penalty = ((5.0 + lengths) / 6.0) ** alpha
+
+    normalized_scores = scores / length_penalty
+
+    best_idx = torch.argmax(normalized_scores).item()
+
+    return {
+        'sequence': finished_sequences[best_idx],
+        'score': normalized_scores[best_idx]
+    }
 
