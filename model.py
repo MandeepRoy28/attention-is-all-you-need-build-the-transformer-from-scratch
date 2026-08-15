@@ -968,9 +968,7 @@ def run_training_step_with_backprop(src_batch, tgt_batch, parameter_list, model_
 
     # Backprop
     loss.backward()
-    for i, p in enumerate(parameter_list):
-        print(i, p.shape, p.requires_grad, p.grad is None)
-
+    
     # Noam LR
     lr = compute_noam_learning_rate(step_number, config["d_model"], config["warmup_steps"])
 
