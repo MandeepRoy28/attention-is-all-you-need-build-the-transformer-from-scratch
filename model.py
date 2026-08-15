@@ -883,6 +883,7 @@ def zero_all_parameter_gradients(parameter_list):
 
 # Step 71 - compute_batch_training_loss
 def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
+
     # Read config
     pad_id = config['pad_id']
     start_id = config['start_id']
@@ -890,18 +891,22 @@ def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
     smoothing = config['smoothing']
     num_heads = config['num_heads']
 
-    # Make the embedding available under the name expected
-    # by run_transformer_forward() and the test.
-    if 'token_embedding' not in model_params:
-        model_params['token_embedding'] = model_params['tgt_embedding']
+    # Connect both embeddings to the forward pass
+    model_params['token_embedding'] = (
+        model_params['src_embedding'] +
+        model_params['tgt_embedding']
+    ) / 2
 
-    # 1. Teacher forcing
+    # Keep gradient for this non-leaf tensor
+    model_params['token_embedding'].retain_grad()
+
+    # Teacher forcing
     decoder_input = shift_targets_right_with_start_token(
         tgt_batch,
         start_id
     )
 
-    # 2. Transformer forward pass
+    # Transformer forward
     log_probabilities = run_transformer_forward(
         src_batch,
         decoder_input,
@@ -910,7 +915,7 @@ def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
         pad_id
     )
 
-    # 3. Build label-smoothed target distribution
+    # Label smoothing
     smoothed = build_uniform_smoothing_distribution(
         log_probabilities.shape,
         vocab_size,
@@ -925,28 +930,54 @@ def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
         confidence
     )
 
-    # 4. Ignore PAD positions and PAD vocabulary column
+    # Ignore PAD
     smoothed = zero_pad_column_and_pad_token_rows(
         smoothed,
         tgt_batch,
         pad_id
     )
 
-    # 5. KL loss
+    # KL loss
     total_loss = compute_label_smoothed_kl_loss(
         log_probabilities,
         smoothed
     )
 
-    # 6. Average over non-PAD tokens
+    # Average over non-PAD tokens
     return average_loss_over_non_pad_tokens(
         total_loss,
         tgt_batch,
         pad_id
     )
 
-# Step 72 - run_training_step_with_backprop (not yet solved)
-# TODO: implement
+# Step 72 - run_training_step_with_backprop
+import torch
+
+def run_training_step_with_backprop(src_batch, tgt_batch, parameter_list, model_params, optimizer_state, step_number, config):
+    """Run one training iteration: zero grads, forward, backward, Noam LR, Adam step.
+
+    Returns the scalar loss value for the step as a Python float.
+    """
+    # TODO: zero grads, compute loss, backward, look up Noam LR, apply Adam step
+   
+    # zero grads 
+    zero_all_parameter_gradients(parameter_list)
+
+    # forward pass 
+    loss = compute_batch_training_loss(src_batch, tgt_batch, model_params, config)
+
+    # Backprop
+    loss.backward()
+    for i, p in enumerate(parameter_list):
+        print(i, p.shape, p.requires_grad, p.grad is None)
+
+    # Noam LR
+    lr = compute_noam_learning_rate(step_number, config["d_model"], config["warmup_steps"])
+
+    # Adam step
+    optimizer_state =  apply_adam_step_to_all_parameters(parameter_list, optimizer_state, lr)
+
+    return loss.item()
 
 # Step 73 - run_training_loop_for_steps (not yet solved)
 # TODO: implement
