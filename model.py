@@ -884,20 +884,20 @@ def zero_all_parameter_gradients(parameter_list):
 # Step 71 - compute_batch_training_loss
 def compute_batch_training_loss(src_batch, tgt_batch, model_params, config):
 
-    # Read config
     pad_id = config['pad_id']
     start_id = config['start_id']
     vocab_size = config['vocab_size']
     smoothing = config['smoothing']
     num_heads = config['num_heads']
 
-    # Connect both embeddings to the forward pass
-    model_params['token_embedding'] = (
-        model_params['src_embedding'] +
-        model_params['tgt_embedding']
-    ) / 2
+    # Create the shared token embedding expected by run_transformer_forward
+    if 'token_embedding' not in model_params:
+        model_params['token_embedding'] = (
+            model_params['src_embedding'] +
+            model_params['tgt_embedding']
+        ) / 2
 
-    # Keep gradient for this non-leaf tensor
+    # Keep gradient for the computed token_embedding
     model_params['token_embedding'].retain_grad()
 
     # Teacher forcing
